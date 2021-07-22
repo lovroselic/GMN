@@ -1,0 +1,356 @@
+******************************* Segment: Default *******************************
+********************************* Segment: GMN *********************************
+[Header]
+0801: 0c 08     -         .word bend
+0803: 0d 00     -         .byte $0d, $00			//;line number
+0805: 9e        -         .byte $9E				//;SYS
+0806: 20        -         .byte $20				//;space
+0807: 32 30 36 34                                      -         .byte $32,$30,$36,$34	//;start 2064
+080b: 00        -         .byte $00				//;end of line
+080c: 00 00     - bend:   .byte $00, $00			//;end of basic program
+
+[Main]
+0810: 78        - Start:  sei							//set interrupt
+0811: a9 7f     -         lda #$7f
+0813: 8d 0d dc  -         sta CIA_ICR
+0816: 8d 0d dd  -         sta CIA2_ICR
+0819: ad 0d dc  -         lda CIA_ICR
+081c: ad 0d dd  -         lda CIA2_ICR
+081f: ad 1a d0  -         lda INTERRUPT_MASK_REGISTER	
+0822: 09 01     -         ora #$01
+0824: 8d 1a d0  -         sta INTERRUPT_MASK_REGISTER
+0827: ad 11 d0  -         lda CONTROL_REGISTER1
+082a: 29 7f     -         and #$7f
+082c: 8d 11 d0  -         sta CONTROL_REGISTER1
+082f: a9 30     -         lda #startRaster
+0831: 8d 12 d0  -         sta RASTER_COUNTER
+0834: a9 08     -         lda #<address
+0836: 8d 14 03  -         sta IRQVEC
+0839: a9 0a     -         lda #>address
+083b: 8d 15 03  -         sta	IRQVEC+1
+083e: 58        -         cli
+083f: a9 00     - game:   lda #0
+0841: 85 c6     -         sta NDX
+0843: a9 01     -         lda #WHITE					//title
+0845: 8d 86 02  -         sta CUR_COLOR
+0848: 20 44 e5  -         jsr CLSCR					
+084b: a0 0a     -         ldy #>text
+084d: a2 ad     -         ldx #<text
+084f: 20 90 09  -         jsr lenString
+0852: 85 fb     -         sta	ZP1						//cached
+0854: a9 28     -         lda #maxCOL
+0856: 38        -         sec
+0857: e5 fb     -         sbc ZP1
+0859: 90 07     -         bcc	skip					//its too long
+085b: 18        -         clc
+085c: 6a        -         ror 						// div 2
+085d: 85 d3     -         sta	CUR_X
+085f: 20 6c e5  -         jsr CALC_CURSOR
+0862: a0 0a     - skip:   ldy #>text
+0864: a2 ad     -         ldx #<text
+0866: 20 76 09  -         jsr printString
+0869: a0 0a     -         ldy #>text
+086b: a2 c4     -         ldx #<text
+086d: 20 90 09  -         jsr lenString
+0870: 85 fb     -         sta	ZP1						//cached
+0872: a9 28     -         lda #maxCOL
+0874: 38        -         sec
+0875: e5 fb     -         sbc ZP1
+0877: 90 07     -         bcc	skip					//its too long
+0879: 18        -         clc
+087a: 6a        -         ror 						// div 2
+087b: 85 d3     -         sta	CUR_X
+087d: 20 6c e5  -         jsr CALC_CURSOR
+0880: a0 0a     - skip:   ldy #>text
+0882: a2 c4     -         ldx #<text
+0884: 20 76 09  -         jsr printString
+0887: a9 28     -         lda #maxCOL
+0889: 38        -         sec
+088a: e9 17     -         sbc	#len
+088c: 18        -         clc
+088d: 6a        -         ror
+088e: 85 d3     -         sta CUR_X
+0890: 20 6c e5  -         jsr CALC_CURSOR
+0893: a9 63     -         lda #char
+0895: a2 17     -         ldx #repeat
+0897: 20 6f 09  -         jsr printSequence
+089a: a9 0d     -         lda #CHR_Return
+089c: 20 d2 ff  -         jsr CHROUT
+089f: a9 0d     -         lda #CHR_Return
+08a1: 20 d2 ff  -         jsr CHROUT
+08a4: a9 0e     -         lda #LIGHTBLUE
+08a6: 8d 86 02  -         sta CUR_COLOR
+08a9: a0 0a     -         ldy #>text
+08ab: a2 d1     -         ldx #<text
+08ad: 20 76 09  -         jsr printString
+08b0: a0 0a     -         ldy #>text
+08b2: a2 ee     -         ldx #<text
+08b4: 20 76 09  -         jsr printString
+08b7: a9 0d     -         lda #CHR_Return
+08b9: 20 d2 ff  -         jsr CHROUT
+08bc: a9 63     -         lda #<end	
+08be: 85 fd     -         sta ZP3
+08c0: a9 00     -         lda #>end
+08c2: 85 fe     -         sta ZP4
+08c4: a9 01     -         lda #<start
+08c6: 85 fb     -         sta ZP1
+08c8: a9 00     -         lda #>start
+08ca: 85 fc     -         sta ZP2
+08cc: 20 a4 09  -         jsr rnd_XY
+08cf: a5 14     -         lda X
+08d1: 8d 84 0b  -         sta Y
+08d4: a9 00     -         lda #0
+08d6: 8d 86 0b  -         sta gCount
+08d9: ee 86 0b  - guessLoop:inc gCount
+08dc: ad 86 0b  -         lda gCount
+08df: c9 09     -         cmp #maxG
+08e1: b0 4a     -         bcs loser
+08e3: a9 00     -         lda #00
+08e5: ae 86 0b  -         ldx x
+08e8: 20 cd bd  -         jsr PRINT_INT
+08eb: a0 0b     -         ldy #>text
+08ed: a2 00     -         ldx #<text
+08ef: 20 76 09  -         jsr printString
+08f2: a0 02     -         ldy #n
+08f4: 20 3d 0a  -         jsr getNumber
+08f7: ad 84 0b  -         lda numToGuess
+08fa: cd 85 0b  -         cmp guess
+08fd: f0 42     -         beq won
+08ff: b0 0a     -         bcs low
+0901: 90 19     -         bcc high
+0903: a9 0d     - round:  lda #CHR_Return
+0905: 20 d2 ff  -         jsr CHROUT
+0908: 4c d9 08  -         jmp guessLoop
+090b: a0 0b     - low:    ldy #>text
+090d: a2 08     -         ldx #<text
+090f: 20 76 09  -         jsr printString
+0912: a0 0b     -         ldy #>text
+0914: a2 0d     -         ldx #<text
+0916: 20 76 09  -         jsr printString
+0919: 4c 03 09  -         jmp round
+091c: a0 0b     - high:   ldy #>text
+091e: a2 08     -         ldx #<text
+0920: 20 76 09  -         jsr printString
+0923: a0 0b     -         ldy #>text
+0925: a2 19     -         ldx #<text
+0927: 20 76 09  -         jsr printString
+092a: 4c 03 09  -         jmp round
+092d: a9 0d     - loser:  lda #CHR_Return
+092f: 20 d2 ff  -         jsr CHROUT
+0932: a0 0b     -         ldy #>text
+0934: a2 56     -         ldx #<text
+0936: 20 76 09  -         jsr printString
+0939: a9 0d     -         lda #CHR_Return
+093b: 20 d2 ff  -         jsr CHROUT
+093e: 4c 65 09  -         jmp end
+0941: a0 0b     - won:    ldy #>text
+0943: a2 08     -         ldx #<text
+0945: 20 76 09  -         jsr printString
+0948: a0 0b     -         ldy #>text
+094a: a2 36     -         ldx #<text
+094c: 20 76 09  -         jsr printString
+094f: a9 0d     -         lda #CHR_Return
+0951: 20 d2 ff  -         jsr CHROUT
+0954: a9 0d     -         lda #CHR_Return
+0956: 20 d2 ff  -         jsr CHROUT
+0959: a0 0b     -         ldy #>text
+095b: a2 3f     -         ldx #<text
+095d: 20 76 09  -         jsr printString
+0960: a9 0d     -         lda #CHR_Return
+0962: 20 d2 ff  -         jsr CHROUT
+0965: a0 0b     - end:    ldy #>text
+0967: a2 6f     -         ldx #<text
+0969: 20 76 09  -         jsr printString
+096c: 20 ef 09  -         jsr another
+
+[Subroutines]
+096f: 20 d2 ff  - subs,printSequence:jsr CHROUT
+0972: ca        -         dex
+0973: d0 fa     -         bne printSequence
+0975: 60        -         rts
+0976: 86 fb     - printString:stx ZP1			//lo
+0978: 84 fc     -         sty	ZP2			//hi
+097a: a0 00     - next:   ldy #$00
+097c: b1 fb     -         lda (ZP1),y		//load character
+097e: c9 00     -         cmp #$00
+0980: f0 0d     -         beq	out			//null terminator
+0982: 20 d2 ff  -         jsr CHROUT
+0985: 18        -         clc
+0986: e6 fb     -         inc	ZP1
+0988: d0 f0     -         bne	next
+098a: e6 fc     -         inc ZP2
+098c: 4c 7a 09  -         jmp next
+098f: 60        - out:    rts
+0990: 86 fb     - lenString:stx ZP1			//lo
+0992: 84 fc     -         sty	ZP2			//hi
+0994: a0 00     -         ldy #$00		
+0996: 84 fd     -         sty ZP3			//counter
+0998: b1 fb     - next:   lda (ZP1),y		//load character
+099a: c9 00     -         cmp #$00
+099c: f0 04     -         beq	out			//null terminator
+099e: c8        -         iny
+099f: 4c 98 09  -         jmp next
+09a2: 98        - out:    tya
+09a3: 60        -         rts
+09a4: a9 00     - rnd_XY: lda #00
+09a6: 20 9a e0  -         jsr RND
+09a9: e6 fd     -         inc ZP3
+09ab: d0 02     -         bne skip1
+09ad: e6 fe     -         inc ZP4
+09af: a5 fd     - skip1:  lda ZP3
+09b1: 38        -         sec
+09b2: e5 fb     -         sbc ZP1
+09b4: 85 fd     -         sta ZP3
+09b6: a5 fe     -         lda ZP4
+09b8: e5 fc     -         sbc ZP2
+09ba: 85 fe     -         sta ZP4			
+09bc: a4 fd     - toFloat:ldy ZP3
+09be: a5 fe     -         lda ZP4
+09c0: 20 91 b3  -         jsr GIVAYF //A(h),Y(L) - FAC
+09c3: a2 ea     -         ldx #<flt
+09c5: a0 09     -         ldy #>flt
+09c7: 20 d4 bb  -         jsr MOVMF	//store FAC to flt
+09ca: a9 7f     -         lda #$7f
+09cc: 20 9a e0  -         jsr RND
+09cf: a9 ea     -         lda #<flt
+09d1: a0 09     -         ldy #>flt
+09d3: 20 28 ba  -         jsr FMULT
+09d6: 20 cc bc  -         jsr FAINT
+09d9: 20 bf b1  -         jsr AYINT
+09dc: a5 65     -         lda $65			
+09de: 18        -         clc
+09df: 65 fb     -         adc ZP1
+09e1: 85 14     -         sta WINT
+09e3: a5 64     -         lda $64
+09e5: 65 fc     -         adc ZP2
+09e7: 85 15     -         sta WINT+1
+09e9: 60        - over:   rts
+
+[Data RND]
+09ea: 00 00 00 00 00                                   - dataRND,flt:.byte 0,0,0,0,0
+09ef: a5 c5     - another,key:lda LSTX		//get character in A
+09f1: c9 40     -         cmp #64			//no key
+09f3: f0 fa     -         beq key
+09f5: c9 19     -         cmp #KEY_Y			
+09f7: f0 07     -         beq restart
+09f9: c9 27     -         cmp #KEY_N			
+09fb: f0 06     -         beq quit
+09fd: 4c ef 09  -         jmp another
+0a00: 4c 3f 08  - restart:jmp game
+0a03: a9 00     - quit:   lda #0
+0a05: 85 c6     -         sta NDX
+0a07: 60        -         rts
+0a08: ad 83 0b  - irqcode:lda modeflag
+0a0b: f0 03     -         beq mode1
+0a0d: 4c 25 0a  -         jmp mode2
+0a10: a9 01     - mode1:  lda #$01
+0a12: 8d 83 0b  -         sta modeflag
+0a15: a9 0e     -         lda #LIGHTBLUE
+0a17: 8d 20 d0  -         sta BORDER
+0a1a: a9 30     -         lda #startRaster
+0a1c: 8d 12 d0  -         sta RASTER_COUNTER
+0a1f: 0e 19 d0  -         asl INTERRUPT_REQUEST_REGISTER
+0a22: 4c 31 ea  -         jmp IRQOUT
+0a25: a9 00     - mode2:  lda #$00
+0a27: 8d 83 0b  -         sta modeflag
+0a2a: a9 06     -         lda #BLUE
+0a2c: 8d 20 d0  -         sta BORDER
+0a2f: a9 fb     -         lda #endRaster
+0a31: 8d 12 d0  -         sta RASTER_COUNTER
+0a34: 0e 19 d0  -         asl INTERRUPT_REQUEST_REGISTER
+0a37: 68        -         pla
+0a38: a8        -         tay
+0a39: 68        -         pla
+0a3a: aa        -         tax
+0a3b: 68        -         pla
+0a3c: 40        -         rti
+0a3d: 8c 87 0b  - getNumber:sty	mChar		//max number of chars
+0a40: a9 00     -         lda #0
+0a42: 8d 88 0b  -         sta countChar	//reset
+0a45: 20 e4 ff  - loop:   jsr GETIN		//get character in A
+0a48: f0 fb     -         beq loop
+0a4a: c9 0d     -         cmp #CHR_Return
+0a4c: f0 26     -         beq enter
+0a4e: c9 14     -         cmp #CHR_Backspace
+0a50: f0 2c     -         beq delete
+0a52: ae 88 0b  -         ldx countChar
+0a55: ec 87 0b  -         cpx mChar
+0a58: 30 03     -         bmi check
+0a5a: 4c 45 0a  -         jmp loop
+0a5d: c9 30     - check:  cmp #$30
+0a5f: 90 e4     -         bcc loop		//< asc(0)
+0a61: c9 3a     -         cmp #$3A
+0a63: b0 e0     -         bcs loop		//> Asc(9)
+0a65: ee 88 0b  -         inc countChar
+0a68: ac 88 0b  -         ldy countChar
+0a6b: 99 89 0b  -         sta input,y
+0a6e: 20 d2 ff  -         jsr CHROUT
+0a71: 4c 45 0a  -         jmp loop
+0a74: ae 88 0b  - enter:  ldx countChar
+0a77: e0 00     -         cpx #0
+0a79: f0 ca     -         beq loop		//no entry, cont loop
+0a7b: 4c 90 0a  -         jmp continue
+0a7e: ae 88 0b  - delete: ldx countChar
+0a81: e0 00     -         cpx #0
+0a83: f0 c0     -         beq loop		//no entry, nothing to delete
+0a85: ce 88 0b  -         dec countChar
+0a88: a9 14     -         lda #CHR_Backspace
+0a8a: 20 d2 ff  -         jsr CHROUT
+0a8d: 4c 45 0a  -         jmp loop
+0a90: ee 88 0b  - continue:inc countChar
+0a93: ac 88 0b  -         ldy countChar
+0a96: a9 00     -         lda #0
+0a98: 99 89 0b  -         sta input,y
+0a9b: a9 0b     -         lda #>pointer
+0a9d: a2 89     -         ldx #<pointer
+0a9f: 86 7a     -         stx TXTPTR
+0aa1: 85 7b     -         sta TXTPTR+1
+0aa3: 20 73 00  -         jsr CHRGET
+0aa6: 20 9e b7  -         jsr EVALNUM
+0aa9: 8e 85 0b  -         stx guess
+0aac: 60        -         rts
+
+[Text]
+0aad: 2a 20 20 47 55 45 53 53 20 4d 59 20 4e 55 4d 42  - text,title:.text 	"*  GUESS MY NUMBER  *"
+0abd: 45 52 20 20 2a                                  
+0ac2: 0d 00     -         .byte $0d,$00
+0ac4: 56        - version:.text 	"V"
+0ac5: 31 2e 30 34                                      -         .text VER
+0ac9: 20 42 59 20 4c 53                                -         .text " BY LS"
+0acf: 0d 00     -         .byte $0d,$00
+0ad1: 49 20 48 41 56 45 20 41 20 4e 55 4d 42 45 52 20  - G1:     .text "I HAVE A NUMBER IN MY MIND."			
+0ae1: 49 4e 20 4d 59 20 4d 49 4e 44 2e                
+0aec: 0d 00     -         .byte $0d,$00
+0aee: 54 52 59 20 54 4f 20 47 55 45 53 53 20 49 54 2e  - G2:     .text "TRY TO GUESS IT."
+0afe: 0d 00     -         .byte $0d,$00
+0b00: 2e 20 54 52 59 3a 20                             - TRY:    .text ". TRY: "
+0b07: 00        -         brk
+0b08: 20 20 3a 20                                      - sep:    .text "  : "
+0b0c: 00        -         brk
+0b0d: 49 54 27 53 20 48 49 47 48 45 52                 - higher: .text "IT'S HIGHER"
+0b18: 00        -         brk
+0b19: 49 54 27 53 20 4c 4f 57 45 52                    - lower:  .text "IT'S LOWER"
+0b23: 00        -         brk
+0b24: 59 45 53 2e 20 54 48 49 53 20 57 41 53 20 49 54  - equal:  .text "YES. THIS WAS IT!"
+0b34: 21                                              
+0b35: 00        -         brk
+0b36: 43 4f 52 52 45 43 54 21                          - correct:.text "CORRECT!"
+0b3e: 00        -         brk
+0b3f: 59 4f 55 20 48 41 56 45 20 57 4f 4e 20 54 48 45  - win:    .text "YOU HAVE WON THE GAME"
+0b4f: 20 47 41 4d 45                                  
+0b54: 0d 00     -         .byte $0d,$00
+0b56: 59 4f 55 20 54 4f 4f 4b 20 54 4f 4f 20 4c 4f 4e  - lost:   .text "YOU TOOK TOO LONG LOSER"
+0b66: 47 20 4c 4f 53 45 52                            
+0b6d: 0d 00     -         .byte $0d,$00
+0b6f: 50 4c 41 59 20 41 4e 4f 54 48 45 52 20 28 59 2f  - again:  .text "PLAY ANOTHER (Y/N)?"
+0b7f: 4e 29 3f                                        
+0b82: 00        -         brk
+
+[Data]
+0b83: 00        - data,modeflag:.byte 0
+0b84: 00        - numToGuess:.byte 0
+0b85: 00        - guess:  .byte 0
+0b86: 00        - gCount: .byte 0
+0b87: 00        - mChar:  .byte 0
+0b88: 00        - countChar:.byte 0
+0b89: 00 00 00 00 00 00 00 00                          - input:  .byte 0,0,0,0,0,0,0,0
